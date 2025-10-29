@@ -55,7 +55,7 @@ const Hero = () => {
           />
 
           <p className="text-center md:tracking-wider mb-4 text-sm md:text-lg lg:text-2xl">
-            Hello! I&apos;m Chet Carter, a Full Stack Developer based in Arizona.
+            Hello! I&apos;m Chet Carter, a Full Stack Developer based in Phoenix, Arizona in the United States.
           </p>
 
           <a href="#about">
