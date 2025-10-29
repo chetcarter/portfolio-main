@@ -108,33 +108,33 @@ export const projects = [
 export const testimonials = [
 	{
 		quote:
+			"We've used Chet for our websites for years. He's very creative, responsive and listens well to where we want to take the business from a marketing and design perspective. I'd highly recommend him for website design, SEO and logo design. He's recently updated our azatmexpert.com site and we soon saw our website hit in the top 5 for all the google searches we were interested in. We've seen a lot more calls since he took over our marketing.",
+		name: 'Brandon H',
+		title: 'Partner at AZ ATM Experts',
+	},
+	{
+		quote:
 			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
-		name: 'Michael Johnson',
+		name: 'David K',
+		title: 'CEO at Terbine.io',
+	},
+	{
+		quote:
+			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
+		name: 'Tom L',
 		title: 'Director of AlphaStream Technologies',
 	},
 	{
 		quote:
 			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
-		name: 'Michael Johnson',
-		title: 'Director of AlphaStream Technologies',
+		name: 'Brad L',
+		title: 'CEO of Lightspeed Virtual Training',
 	},
 	{
 		quote:
 			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
-		name: 'Michael Johnson',
-		title: 'Director of AlphaStream Technologies',
-	},
-	{
-		quote:
-			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
-		name: 'Michael Johnson',
-		title: 'Director of AlphaStream Technologies',
-	},
-	{
-		quote:
-			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
-		name: 'Michael Johnson',
-		title: 'Director of AlphaStream Technologies',
+		name: 'Robert C',
+		title: 'Senior Manager, Media Services at UFC',
 	},
 ];
 
