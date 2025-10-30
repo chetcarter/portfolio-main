@@ -119,7 +119,7 @@ export const InfiniteMovingCards = ({
                 <div className="me-3">
                   <img src={item.image} alt="profile image" />
                 </div>
-                <span className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   {/* change text color, font-normal to font-bold, text-xl */}
                   <span className="text-xl font-bold leading-[1.6] text-white">
                     {item.name}
@@ -128,7 +128,7 @@ export const InfiniteMovingCards = ({
                   <span className=" text-sm leading-[1.6] text-white-200 font-normal">
                     {item.title}
                   </span>
-                </span>
+                </div>
               </div>
             </blockquote>
           </li>
