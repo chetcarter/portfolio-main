@@ -97,7 +97,7 @@ export const projects = [
 	},
 	{
 		id: 4,
-		title: 'Animated Apple Iphone 3D Website',
+		title: 'Animated Apple iPhone 3D Website',
 		des: 'Recreated the Apple iPhone 15 Pro website, combining GSAP animations and Three.js 3D effects..',
 		img: '/p4.svg',
 		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/three.svg', '/gsap.svg'],
@@ -115,28 +115,28 @@ export const testimonials = [
 	},
 	{
 		quote:
-			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
+			'I had the pleasure of working with Chet during his tenure at Terbine.io as a front-end developer. He brought exceptional skill with React, TypeScript, and REST API integrations, turning complex requirements into smooth, high-performing user experiences. Chet didn’t just implement — he cared about usability, code quality, and how each feature aligned with our business goals.',
 		name: 'David K',
 		title: 'CEO at Terbine.io',
 		image: '/david-k-terbine.png',
 	},
 	{
 		quote:
-			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
+			'Collaborating with Chet at The Letizia Agency was truly a standout experience. His ability to dive into complex campaigns, pivot quickly and deliver high-impact visuals and web solutions under tight timelines showed rare professionalism. Chet’s dedication to understanding not just the technical build, but also the emotional undercurrent of the brand, made every deliverable stronger. If you’re looking for someone who blends full-stack know-how with creative strategy to lift your digital presence, Chet is the one you want.',
 		name: 'Tom L',
 		title: 'Founder of The Letizia Agency',
 		image: '/tom-l-la.png',
 	},
 	{
 		quote:
-			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
+			'Working with Chet at LightSpeed VT was a game-changer. He doesn’t just manage projects — he drives results with clarity, confidence, and a get-it-done mentality. Chet coordinated fast-moving teams, kept communication razor-sharp, and ensured every initiative hit the mark and moved the mission forward. He shows up prepared, thinks several steps ahead, and executes with intention.',
 		name: 'Brad L',
 		title: 'CEO of Lightspeed Virtual Training',
 		image: '/brad-l-lsvt.png',
 	},
 	{
 		quote:
-			"Collaborating with Adrian was an absolute pleasure. His professionalism, promptness, and dedication to delivering exceptional results were evident throughout our project. Adrian's enthusiasm for every facet of development truly stands out. If you're seeking to elevate your website and elevate your brand, Adrian is the ideal partner.",
+			'Working with Chet on various projects at the UFC was a standout experience. From high-stakes deliverables to rapid-turn tasks, Chet brought focus, structure, and real ownership. He didn’t just follow the brief—he anticipated needs, aligned multiple stakeholders, and kept everything aligned with brand integrity and audience impact.',
 		name: 'Robert C',
 		title: 'Senior Manager, Media Services at UFC',
 		image: '/robert-c-ufc.png',
