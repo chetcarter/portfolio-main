@@ -1,7 +1,7 @@
 'use client';
 
 import { FaLocationArrow } from 'react-icons/fa6';
-
+import Link from 'next/link';
 import { projects } from '@/data';
 import { PinContainer } from './ui/Pin';
 
@@ -13,6 +13,7 @@ const RecentProjects = () => {
 			</h1>
 			<div className='flex flex-wrap items-center justify-center p-4 gap-16 mt-10'>
 				{projects.map((item) => (
+					<Link key={item.id} href={item.link} target="_blank">
 					<div
 						className='lg:min-h-[32.5rem] h-[25rem] flex items-center justify-center sm:w-96 w-[80vw]'
 						key={item.id}>
@@ -66,6 +67,7 @@ const RecentProjects = () => {
 							</div>
 						</PinContainer>
 					</div>
+				</Link>
 				))}
 			</div>
 		</div>
