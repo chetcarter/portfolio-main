@@ -84,7 +84,7 @@ export const projects = [
 		title: 'AI Resume Analyzer',
 		des: 'Implement seamless auth, upload and store resumes, and match candidates to jobs using smart AI evaluations.',
 		img: '/p2.svg',
-		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/stream.svg', '/c.svg'],
+		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/c.svg'],
 		link: 'https://github.com/chetcarter/ai-resume-analyzer-main',
 	},
 	{
