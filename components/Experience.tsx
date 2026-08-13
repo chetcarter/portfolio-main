@@ -33,6 +33,7 @@ const Experience = () => {
               <img
                 src={card.thumbnail}
                 alt={card.thumbnail}
+                loading="lazy"
                 className="lg:w-32 md:w-20 w-16"
               />
               <div className="lg:ms-5">
