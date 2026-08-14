@@ -23,7 +23,9 @@ export const TextGenerateEffect = ({
         delay: stagger(0.2),
       }
     );
-  }, [animate]);
+    // `words` is a dependency because each word renders as its own span at
+    // opacity-0; without it, changing the text leaves the new spans invisible.
+  }, [animate, words]);
 
   const renderWords = () => {
     return (

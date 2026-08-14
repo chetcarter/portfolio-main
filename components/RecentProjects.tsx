@@ -21,7 +21,7 @@ const RecentProjects = () => {
 								<div
 									className='relative w-full h-full overflow-hidden lg:rounded-3xl'
 									style={{ backgroundColor: '#13162D' }}>
-									<img src='/bg.webp' alt='bg-img' loading='lazy' />
+									<img src='/bg.webp' alt='' loading='lazy' />
 								</div>
 								<img
 									src={item.img}
@@ -53,7 +53,7 @@ const RecentProjects = () => {
 											style={{
 												transform: `translateX(-${5 * index + 2}px)`,
 											}}>
-											<img src={icon} alt='icon5' className='p-2' />
+											<img src={icon} alt='' className='p-2' />
 										</div>
 									))}
 								</div>
