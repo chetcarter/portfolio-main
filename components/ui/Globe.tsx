@@ -185,9 +185,15 @@ export function Globe({ globeConfig, data }: WorldProps) {
       .arcDashGap(15)
       .arcDashAnimateTime((e) => defaultProps.arcTime);
 
+    // `globeData` (built by _buildData) is the deduplicated {lat, lng, ...}
+    // list. `data` holds arcs, which expose startLat/endLat but no bare
+    // lat/lng, so three-globe's default 'lat'/'lng' accessors resolved to
+    // undefined and merged every point into one all-NaN BufferGeometry.
     globeRef.current
-      .pointsData(data)
-      .pointColor((e) => (e as { color: string }).color)
+      .pointsData(globeData)
+      // globeData carries `color` as a time function for ringColor, so it has
+      // to be evaluated to a string here; t=0 is full opacity.
+      .pointColor((e) => (e as { color: (t: number) => string }).color(0))
       .pointsMerge(true)
       .pointAltitude(0.0)
       .pointRadius(2);
@@ -207,10 +213,13 @@ export function Globe({ globeConfig, data }: WorldProps) {
 
     const interval = setInterval(() => {
       if (!globeRef.current || !globeData) return;
+      // Indices are used to sample globeData, so they must be drawn from its
+      // length — `data` (arcs) is longer, and the surplus indices matched
+      // nothing, silently producing fewer rings than intended.
       numbersOfRings = genRandomNumbers(
         0,
-        data.length,
-        Math.floor((data.length * 4) / 5)
+        globeData.length,
+        Math.floor((globeData.length * 4) / 5)
       );
 
       globeRef.current.ringsData(
