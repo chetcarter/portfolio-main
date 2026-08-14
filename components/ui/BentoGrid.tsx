@@ -89,7 +89,8 @@ export const BentoGridItem = ({
 					{img && (
 						<img
 							src={img}
-							alt={img}
+							// Decorative background art — the card's own title carries the meaning.
+							alt=''
 							className={cn(imgClassName, 'object-cover object-center ')}
 						/>
 					)}
@@ -101,7 +102,7 @@ export const BentoGridItem = ({
 					{spareImg && (
 						<img
 							src={spareImg}
-							alt={spareImg}
+							alt=''
 							//   width={220}
 							className='object-cover object-center w-full h-full'
 						/>

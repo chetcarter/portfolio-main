@@ -14,7 +14,7 @@ export const gridItems = [
 		className: 'lg:col-span-3 md:col-span-6 md:row-span-4 lg:min-h-[60vh]',
 		imgClassName: 'w-full h-full',
 		titleClassName: 'justify-end',
-		img: '/b1.svg',
+		img: '/b1.webp',
 		spareImg: '',
 	},
 	{
@@ -42,9 +42,11 @@ export const gridItems = [
 		title: 'Tech enthusiast with a passion for development.',
 		description: '',
 		className: 'lg:col-span-2 md:col-span-3 md:row-span-1',
-		imgClassName: '',
+		// grid.webp is 1392px wide for retina; cap the layout box at the 351px
+		// the old grid.svg reported intrinsically so this card is unchanged.
+		imgClassName: 'w-full max-w-[351px]',
 		titleClassName: 'justify-start',
-		img: '/grid.svg',
+		img: '/grid.webp',
 		spareImg: '/b4.svg',
 	},
 
@@ -55,8 +57,8 @@ export const gridItems = [
 		className: 'md:col-span-3 md:row-span-2',
 		imgClassName: 'absolute right-0 bottom-0 md:w-96 w-60',
 		titleClassName: 'justify-center md:justify-start lg:justify-center',
-		img: '/b5.svg',
-		spareImg: '/grid.svg',
+		img: '/b5.webp',
+		spareImg: '/grid.webp',
 	},
 	{
 		id: 6,
@@ -75,23 +77,23 @@ export const projects = [
 		id: 1,
 		title: 'Stock Market App',
 		des: 'AI-powered modern stock market app built with Next.js, Shadcn, Better Auth, and Inngest!',
-		img: '/p1.svg',
-		iconLists: ['/re.svg', '/tail.svg', '/ts.svg', '/three.svg', '/fm.svg'],
+		img: '/p1.webp',
+		iconLists: ['/re.svg', '/tail.svg', '/ts.svg', '/three.svg', '/fm.webp'],
 		link: 'https://github.com/chetcarter/stock-tracker-app-main',
 	},
 	{
 		id: 2,
 		title: 'AI Resume Analyzer',
 		des: 'Implement seamless auth, upload and store resumes, and match candidates to jobs using smart AI evaluations.',
-		img: '/p2.svg',
-		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/stream.svg', '/c.svg'],
+		img: '/p2.webp',
+		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/c.svg'],
 		link: 'https://github.com/chetcarter/ai-resume-analyzer-main',
 	},
 	{
 		id: 3,
 		title: 'Streaming Movie Dashboard',
 		des: 'Built with React.js, Appwrite, TailwindCSS, this Movie App lets users browse trending movies, search titles, and explore content using the TMDB API.',
-		img: '/p3.svg',
+		img: '/p3.webp',
 		iconLists: ['/re.svg', '/tail.svg', '/ts.svg', '/three.svg', '/c.svg'],
 		link: 'https://github.com/chetcarter/react-movies-main',
 	},
@@ -99,8 +101,8 @@ export const projects = [
 		id: 4,
 		title: 'Animated Apple iPhone 3D Website',
 		des: 'Recreated the Apple iPhone 15 Pro website, combining GSAP animations and Three.js 3D effects..',
-		img: '/p4.svg',
-		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/three.svg', '/gsap.svg'],
+		img: '/p4.webp',
+		iconLists: ['/next.svg', '/tail.svg', '/ts.svg', '/three.svg', '/gsap.webp'],
 		link: 'https://github.com/chetcarter/iphone-main',
 	},
 ];
@@ -140,7 +142,7 @@ export const companies = [
 	{
 		id: 1,
 		name: 'US ATM Experts',
-		img: '/uaeLogo.svg',
+		img: '/uaeLogo.webp',
 		nameImg: '/uaeName.svg',
 	},
 	{
