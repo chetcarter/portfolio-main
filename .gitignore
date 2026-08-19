@@ -40,3 +40,7 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Claude Code — personal, machine-local overrides.
+# .claude/ itself stays tracked (launch.json is shared); only this file is ignored.
+.claude/settings.local.json
