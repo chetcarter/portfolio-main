@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+    # Scheduled *version* update PRs stay off. This block exists only so the
+    # ignore rule below has somewhere to live — a limit of 0 is the documented
+    # way to keep the config active without Dependabot opening routine
+    # dependency-bump PRs. Security PRs are unaffected by this limit.
+    open-pull-requests-limit: 0
+
+    ignore:
+      # Next 16 was proposed as an automated security bump (PR #7) and closed
+      # deliberately. Every Next advisory currently open against this repo
+      # targets server-side surface — Image Optimizer, Server Actions, RSC
+      # request handling, middleware, rewrites — and this site builds with
+      # `output: 'export'`, so none of that runs at deploy time.
+      #
+      # Going 14 -> 16 is a two-major migration touching the App Router and the
+      # build, and it buys no real risk reduction on a static export. It should
+      # happen as its own deliberate change, not as an auto-merged security PR.
+      #
+      # Note this pins the *reason*, not the dependency: 14.x and 15.x updates
+      # still come through, and removing these two lines re-enables 16.x when
+      # the migration is actually wanted.
+      - dependency-name: "next"
+        versions: ["16.x"]
