@@ -37,10 +37,10 @@ The dev server runs at [localhost:3000](http://localhost:3000).
 ## Structure
 
 ```
-app/          Next.js App Router entry, layout, and global styles
-components/   Page sections (Hero, Grid, RecentProjects, …)
-components/ui Reusable primitives
-data/         Site content and Lottie animation JSON
+app/           Next.js App Router entry, layout, and global styles
+components/    Page sections (Hero, Grid, RecentProjects, …)
+components/ui/ Reusable primitives
+data/          Site content and Lottie animation JSON
 lib/          Shared utilities
 public/       Static assets
 ```
