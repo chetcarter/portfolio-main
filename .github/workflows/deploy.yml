@@ -87,12 +87,35 @@ jobs:
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           test -s ~/.ssh/known_hosts || { echo "ssh-keyscan returned nothing for $SSH_HOST:$SSH_PORT"; exit 1; }
 
+      - name: Confirm the remote target is the live site
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          TARGET_DIR: domains/chetcarter.com/public_html
+        run: |
+          # rsync happily creates a missing destination, so a wrong path would
+          # deploy into a new empty directory and report success while the site
+          # never changed. Refuse to run unless the target already exists and
+          # already looks like this site.
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "
+              test -d '$TARGET_DIR' || { echo 'target $TARGET_DIR does not exist'; exit 1; }
+              test -f '$TARGET_DIR/index.html' || { echo 'no index.html in $TARGET_DIR — refusing to treat it as the web root'; exit 1; }
+              echo \"target ok: \$(find '$TARGET_DIR' -type f | wc -l | tr -d ' ') files currently deployed\"
+            "
+
       - name: Publish to Hostinger
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
           DRY_RUN: ${{ inputs.dry_run }}
+          # SSH lands in /home/<user>, where public_html does NOT exist — the
+          # web root is under domains/<domain>/. Getting this wrong deploys into
+          # a new empty directory and silently changes nothing; the step above
+          # guards against that.
+          TARGET_DIR: domains/chetcarter.com/public_html
         run: |
           # --delete prunes assets that a later build no longer ships, which is
           # what stops public_html accumulating dead files. Everything listed as
@@ -112,7 +135,7 @@ jobs:
             --exclude '_next.7927' \
             --exclude 'default.php.zip' \
             -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
-            out/ "$SSH_USER@$SSH_HOST:public_html/"
+            out/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
 
       - name: Verify the live site
         run: |
