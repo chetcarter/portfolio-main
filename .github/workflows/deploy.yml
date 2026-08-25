@@ -1,6 +1,6 @@
 name: Deploy
 
-# Publishes the static export to Hostinger.
+# Publishes the static export to Hostinger over SSH (rsync).
 #
 # Rather than re-running lint/typecheck/build here, this waits for the CI
 # workflow to finish on main and only proceeds if it passed — so a red build
@@ -11,11 +11,16 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would change without uploading or deleting anything"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# Never cancel a deploy in flight: interrupting a partial upload would leave
+# Never cancel a deploy in flight: interrupting a partial sync would leave
 # public_html serving a mix of old and new files.
 concurrency:
   group: deploy-production
@@ -34,20 +39,22 @@ jobs:
           # default — pin to it so we deploy exactly what was verified.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
-      - name: Fail early if FTP secrets are missing
+      - name: Fail early if SSH secrets are missing
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           missing=""
-          [ -n "$FTP_SERVER" ]   || missing="$missing FTP_SERVER"
-          [ -n "$FTP_USERNAME" ] || missing="$missing FTP_USERNAME"
-          [ -n "$FTP_PASSWORD" ] || missing="$missing FTP_PASSWORD"
+          [ -n "$SSH_HOST" ]        || missing="$missing SSH_HOST"
+          [ -n "$SSH_PORT" ]        || missing="$missing SSH_PORT"
+          [ -n "$SSH_USER" ]        || missing="$missing SSH_USER"
+          [ -n "$SSH_PRIVATE_KEY" ] || missing="$missing SSH_PRIVATE_KEY"
           if [ -n "$missing" ]; then
             echo "Missing repository secret(s):$missing"
             echo "Add them under Settings -> Secrets and variables -> Actions."
-            echo "Values come from hPanel -> Files -> FTP Accounts."
+            echo "Host/port/user come from hPanel -> Advanced -> SSH Access."
             exit 1
           fi
 
@@ -66,23 +73,79 @@ jobs:
           grep -q '_next/static' out/index.html || { echo "out/index.html has no asset references — refusing to deploy"; exit 1; }
           echo "export looks sane: $(find out -type f | wc -l | tr -d ' ') files"
 
-      - name: Publish to Hostinger over FTPS
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          # Hostinger supports explicit FTPS on port 21. Switch to `ftp` only if
-          # the connection is rejected — that sends the password in the clear.
-          protocol: ftps
-          port: 21
-          local-dir: ./out/
-          server-dir: public_html/
-          # The action tracks what it uploaded in a state file on the server, so
-          # assets dropped from a later build get removed automatically. Files it
-          # has never uploaded are left alone, which is what protects the
-          # _next.7927 rollback copy and Hostinger's own default.php.zip.
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
+      - name: Configure SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pin the host key up front so the rsync below can run with strict
+          # checking on, rather than blindly trusting whatever answers.
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts || { echo "ssh-keyscan returned nothing for $SSH_HOST:$SSH_PORT"; exit 1; }
+
+      - name: Confirm the remote target is the live site
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          TARGET_DIR: domains/chetcarter.com/public_html
+        run: |
+          # rsync happily creates a missing destination, so a wrong path would
+          # deploy into a new empty directory and report success while the site
+          # never changed. Refuse to run unless the target already exists and
+          # already looks like this site.
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "
+              test -d '$TARGET_DIR' || { echo 'target $TARGET_DIR does not exist'; exit 1; }
+              test -f '$TARGET_DIR/index.html' || { echo 'no index.html in $TARGET_DIR — refusing to treat it as the web root'; exit 1; }
+              echo \"target ok: \$(find '$TARGET_DIR' -type f | wc -l | tr -d ' ') files currently deployed\"
+            "
+
+      - name: Publish to Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          # SSH lands in /home/<user>, where public_html does NOT exist — the
+          # web root is under domains/<domain>/. Getting this wrong deploys into
+          # a new empty directory and silently changes nothing; the step above
+          # guards against that.
+          TARGET_DIR: domains/chetcarter.com/public_html
+        run: |
+          # --delete prunes assets that a later build no longer ships, which is
+          # what stops public_html accumulating dead files. Everything listed as
+          # --exclude is skipped on upload AND protected from that pruning:
+          #   .well-known      ACME/SSL challenge files — deleting breaks renewal
+          #   .htaccess        server config, not part of the build
+          #   _next.7927       kept rollback copy of the previous build
+          #   default.php.zip  Hostinger's own file, predates this repo
+          RSYNC_FLAGS="-az --delete --human-readable --stats"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY RUN — nothing will be uploaded or deleted"
+            RSYNC_FLAGS="$RSYNC_FLAGS --dry-run --itemize-changes"
+          fi
+          rsync $RSYNC_FLAGS \
+            --exclude '.well-known' \
+            --exclude '.htaccess' \
+            --exclude '_next.7927' \
+            --exclude 'default.php.zip' \
+            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
+            out/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+
+      - name: Verify the live site
+        run: |
+          for path in / p1.webp _next/static; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "https://chetcarter.com/$path" --max-time 25 || echo 000)
+            echo "  /$path -> $code"
+          done
+          code=$(curl -sS -o /dev/null -w '%{http_code}' https://chetcarter.com/ --max-time 25 || echo 000)
+          [ "$code" = "200" ] || { echo "homepage returned $code after deploy"; exit 1; }
+
+      - name: Remove the deploy key from the runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
