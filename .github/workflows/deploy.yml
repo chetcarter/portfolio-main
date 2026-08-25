@@ -124,7 +124,13 @@ jobs:
           #   .htaccess        server config, not part of the build
           #   _next.7927       kept rollback copy of the previous build
           #   default.php.zip  Hostinger's own file, predates this repo
-          RSYNC_FLAGS="-az --delete --human-readable --stats"
+          # --delete-after rather than plain --delete (which defaults to
+          # --delete-during): every deploy replaces the previous build's hashed
+          # chunks, so deleting as we go would remove old chunks while new ones
+          # are still uploading. A visitor holding cached HTML that references
+          # the old filenames would 404 for those seconds. Deleting only after
+          # all transfers finish keeps both builds present during the window.
+          RSYNC_FLAGS="-az --delete-after --human-readable --stats"
           if [ "$DRY_RUN" = "true" ]; then
             echo "DRY RUN — nothing will be uploaded or deleted"
             RSYNC_FLAGS="$RSYNC_FLAGS --dry-run --itemize-changes"
