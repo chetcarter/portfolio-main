@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -7,7 +7,42 @@ const World = dynamic(() => import("./Globe").then((m) => m.World), {
   ssr: false,
 });
 
+// next/dynamic with ssr:false still fetches and executes the chunk as soon as
+// the component mounts — it only skips server rendering. The globe pulls in
+// three.js (~654KB), and this card sits well below the fold, so that work was
+// landing on the main thread during the initial paint and delaying LCP.
+// Gate the mount on the card actually approaching the viewport instead.
+function useInView<T extends HTMLElement>(rootMargin = "300px") {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Without IntersectionObserver, fall back to rendering immediately rather
+    // than leaving the globe permanently blank.
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [rootMargin]);
+
+  return [ref, inView] as const;
+}
+
 const GridGlobe = () => {
+  const [globeRef, globeInView] = useInView<HTMLDivElement>();
   const globeConfig = {
     pointSize: 4,
     globeColor: "#062056",
@@ -425,8 +460,8 @@ const GridGlobe = () => {
         </motion.div> */}
         <div className="absolute w-full bottom-0 inset-x-0 h-40 bg-gradient-to-b pointer-events-none select-none from-transparent dark:to-black to-white z-40" />
         {/* remove -bottom-20 */}
-        <div className="absolute w-full h-72 md:h-full z-10">
-          <World data={sampleArcs} globeConfig={globeConfig} />
+        <div ref={globeRef} className="absolute w-full h-72 md:h-full z-10">
+          {globeInView && <World data={sampleArcs} globeConfig={globeConfig} />}
         </div>
       </div>
     </div>

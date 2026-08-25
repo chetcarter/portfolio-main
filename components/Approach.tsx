@@ -1,7 +1,16 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 
-import { CanvasRevealEffect } from "./ui/CanvasRevealEffect";
+// CanvasRevealEffect imports three and @react-three/fiber directly. Importing
+// it eagerly pulled ~654KB of three into the page's initial chunk graph, even
+// though these cards sit far below the fold and only render their canvas on
+// hover. Loading it dynamically keeps three out of the initial download; the
+// chunk is fetched the first time someone actually hovers a card.
+const CanvasRevealEffect = dynamic(
+  () => import("./ui/CanvasRevealEffect").then((m) => m.CanvasRevealEffect),
+  { ssr: false }
+);
 
 const Approach = () => {
   return (
