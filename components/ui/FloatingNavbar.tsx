@@ -16,7 +16,8 @@ export const FloatingNav = ({
   navItems: {
     name: string;
     link: string;
-    icon?: JSX.Element;
+    // React 19 removed the global JSX namespace; it lives under React now.
+    icon?: React.JSX.Element;
   }[];
   className?: string;
 }) => {
