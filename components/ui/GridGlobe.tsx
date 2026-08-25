@@ -19,23 +19,48 @@ function useInView<T extends HTMLElement>(rootMargin = "300px") {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    let cancelled = false;
+    const show = () => {
+      if (!cancelled) setInView(true);
+    };
+
     // Without IntersectionObserver, fall back to rendering immediately rather
     // than leaving the globe permanently blank.
     if (typeof IntersectionObserver === "undefined") {
-      setInView(true);
+      show();
       return;
     }
+
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          setInView(true);
+          show();
           io.disconnect();
         }
       },
       { rootMargin }
     );
     io.observe(el);
-    return () => io.disconnect();
+
+    // Belt and braces. Deferring the globe is a performance nicety; the globe
+    // failing to appear is a broken page, so never let it depend solely on an
+    // observer callback arriving. Once the browser is idle — well past LCP, so
+    // the performance win is kept — mount regardless of what the observer did.
+    const idle: number =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(show, { timeout: 3000 })
+        : (window.setTimeout(show, 2000) as unknown as number);
+
+    return () => {
+      cancelled = true;
+      io.disconnect();
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idle);
+      } else {
+        window.clearTimeout(idle);
+      }
+    };
   }, [rootMargin]);
 
   return [ref, inView] as const;
