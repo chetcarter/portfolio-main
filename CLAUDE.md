@@ -73,18 +73,29 @@ perfectly healthy deploy while browsers were served 200 throughout.
 
 ## Working in this repo
 
-- `gh api --cache 0` — gh caches reads. `gh run list --commit <sha>` returned
-  empty while runs existed, and `ccd_pr get_status` reports 0 checks for a few
-  seconds after a PR opens. Neither absence means "none"; re-read before
-  concluding.
+- **An empty read is not proof of absence.** `gh run list --commit <sha>` has
+  come back empty while those runs existed, and `ccd_pr get_status` reports 0
+  checks for a few seconds after a PR opens — GitHub takes a moment to index.
+  Re-read, or cross-check a different way, before reporting that something
+  never ran. (`gh api` separately caches; `--cache 0` defeats that. It is a
+  `gh api` flag only — `gh run list` rejects it.)
 - `gh pr update-branch <n>` before `gh pr merge` — strict status checks reject
   a branch that is behind `main`.
-- Copilot auto-reviews every PR and the ruleset requires threads resolved, so a
-  merge stays blocked until its comments are answered and resolved.
+- Copilot reviews most PRs but not all — it has skipped docs-only and
+  lockfile-only ones. When it does comment, the ruleset requires threads
+  resolved, so the merge stays blocked until each is answered and resolved.
+  Check for threads rather than assuming either way.
 - Test a workflow `run:` block by extracting and executing it, not by reading
-  it: dump `yaml.load(...).jobs.deploy.steps.find(...).run` to a file and run
-  that file. This caught a heredoc that could not terminate and brace mangling
-  that produced an invalid import — which `deploy.yml`'s warn-and-continue
+  it:
+
+  ```bash
+  npx --yes js-yaml .github/workflows/deploy.yml \
+    | jq -r '.jobs.deploy.steps[] | select(.name=="STEP NAME") | .run' > /tmp/step.sh
+  bash -e /tmp/step.sh   # same `bash -e` GitHub uses
+  ```
+
+  This caught a heredoc that could not terminate and brace mangling that
+  produced an invalid import — both of which `deploy.yml`'s warn-and-continue
   error handling would otherwise have hidden indefinitely.
 - Proving a build option works needs a control run with the option *absent*.
   Comparing old-option against new-option output only shows they match, which
