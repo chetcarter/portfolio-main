@@ -11,7 +11,10 @@ npm run lint      # eslint .  (NOT `next lint` — deprecated in 15, removed in 
 npx tsc --noEmit  # typecheck
 ```
 
-`npm start` is inert. `output: 'export'` means there is no server to start.
+`npm start` does not work here — `next start` refuses an `output: 'export'`
+build and exits. To preview the production build, serve `out/` statically:
+`npx serve@latest out`, or the `static-export` entry in `.claude/launch.json`
+(port 3005).
 
 ## Architecture
 
@@ -20,9 +23,10 @@ this repo. Every route prerenders to static HTML; there is no server runtime.
 Consequences:
 
 - No `next/image` optimization — `sharp` is in the tree but never invoked.
-- No instrumentation file. Sentry warns about the missing one on every build,
-  which is suppressed at the top of `next.config.mjs` rather than satisfied
-  with a file that could never execute.
+- No *server* `instrumentation.ts`. Sentry warns about the missing one on
+  every build, which is suppressed at the top of `next.config.mjs` rather than
+  satisfied with a file that could never execute. `instrumentation-client.ts`
+  does exist and is the live client-side Sentry entry point — edit that one.
 - No API routes, middleware, or server actions.
 
 ```
@@ -35,15 +39,19 @@ lib/             helpers
 ## Deploy
 
 Merge to `main` → CI (lint, typecheck, build) → Deploy workflow → `rsync` over
-SSH to Hostinger. There is no FTP path and one should not be added: SSH keys,
-`--delete-after` pruning, host-key pinning and a web-root guard all already
-exist, and a second write path to one document root invites drift.
+SSH to Hostinger. There is no FTP path and one should not be added: key-based
+auth, `--delete-after` pruning and a web-root guard all already exist, and a
+second write path to one document root invites drift. (The host key is
+trust-on-first-use per job — `ssh-keyscan` seeds `known_hosts`, then
+`StrictHostKeyChecking=yes` holds for the rest of that run. It is not pinned
+against an independently trusted fingerprint.)
 
 Manual run: Actions → Deploy. It takes a `dry_run` input that previews changes
 without uploading.
 
 Deploys are verified by comparing `out/index.html`'s checksum against the
-server's, over the same SSH connection that did the upload. **Never gate CI on
+server's over SSH — a separate `ssh` invocation from the one `rsync` opens,
+using the same key and host. **Never gate CI on
 an HTTP probe of the live site.** Hostinger's CDN answers GitHub runner IPs
 with 403 regardless of the site's health; that check already failed one
 perfectly healthy deploy while browsers were served 200 throughout.
@@ -62,9 +70,13 @@ perfectly healthy deploy while browsers were served 200 throughout.
   property of the device, not a fact about the browser. Caching it lets a later
   caller mount a `<Canvas>` into an exhausted device and reintroduces
   JAVASCRIPT-NEXTJS-7, the site's top Sentry issue.
-- **Sentry only reports production traffic.** `instrumentation-client.ts` drops
-  events from local hosts and events whose stack contains no first-party
-  frames. Most of the issue list was once `next dev` and browser extensions.
+- **Sentry reports from production *builds*, not only the production host.**
+  `instrumentation-client.ts` enables the SDK when `NODE_ENV === "production"`
+  and drops events from local hosts and events whose stack carries no
+  first-party frames. A preview or staging deploy is a production build on a
+  non-local host, so it still reports — and is tagged `production` unless
+  `NEXT_PUBLIC_VERCEL_ENV` is set. Most of the issue list was once `next dev`
+  and browser extensions.
 - **Sentry releases are created only in the deploy build.** CI builds the same
   code but never ships it, so it must not mint releases —
   `SENTRY_AUTH_TOKEN` is passed to the deploy build alone.
