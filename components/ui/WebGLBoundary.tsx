@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import * as Sentry from "@sentry/nextjs";
 
 type Props = {
   children: React.ReactNode;
@@ -18,6 +19,18 @@ export class WebGLBoundary extends React.Component<Props, { failed: boolean }> {
 
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+
+  // React hands caught errors to `onCaughtError`, which only console.errors —
+  // Sentry never sees them. Swallowing the render is the point; swallowing the
+  // report is not, since this catches every throw in the subtree, not just the
+  // WebGL ones. Without this, a real bug in Globe.tsx would blank the globe for
+  // everyone and produce no events at all.
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    Sentry.captureException(error, {
+      tags: { boundary: "webgl" },
+      contexts: { react: { componentStack: info.componentStack } },
+    });
   }
 
   render() {

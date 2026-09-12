@@ -28,7 +28,10 @@ function isFirstParty(event: Sentry.ErrorEvent): boolean {
 Sentry.init({
   dsn: "https://7abb6eefbe0e3f5f60b49ed06aa97921@o4510314380591104.ingest.us.sentry.io/4510314385899520",
 
-  environment: process.env.NODE_ENV,
+  // NODE_ENV is "production" for every non-dev build, which would file preview
+  // and staging deploys alongside real chetcarter.com traffic. Prefer the
+  // host's deploy environment where it publishes one.
+  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
 
   // Local development reported into the same project as production and buried
   // the real issues under hydration warnings from `next dev`.
@@ -59,7 +62,8 @@ Sentry.init({
     /^chrome-extension:\/\//,
     /^moz-extension:\/\//,
     /^safari-(web-)?extension:\/\//,
-    /^ext:\/\//,
+    // Not `ext://` — Deno-backed extension frames are spelled `ext:core/...`.
+    /^ext:/,
   ],
 
   beforeSend(event) {
