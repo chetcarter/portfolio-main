@@ -38,6 +38,11 @@ jobs:
           # workflow_run does not check out the commit that triggered CI by
           # default — pin to it so we deploy exactly what was verified.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          # Sentry's `setCommits: { auto: true }` walks back from HEAD to work
+          # out which commits belong to this release. A shallow clone gives it
+          # nothing to walk, so the release lands with no commits attached and
+          # `Fixes ISSUE-ID` never resolves anything.
+          fetch-depth: 0
 
       - name: Fail early if SSH secrets are missing
         env:
@@ -65,7 +70,33 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      - name: Build
+        env:
+          # Without this the Sentry webpack plugin silently skips release
+          # creation and source map upload. That is why no release existed for
+          # any commit after 2026-08-27 and every `Fixes ISSUE-ID` trailer was
+          # inert. Only the deploy builds a release — CI builds the same code
+          # but never ships it, so it must not mint releases.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # Name the release after the commit we actually checked out and are
+          # about to publish. The plugin's own detection reads GITHUB_SHA
+          # first, and on a `workflow_run` trigger that is the default
+          # branch's head when the event fired — not workflow_run.head_sha.
+          # With two merges landing close together those differ, and the
+          # release would be filed against code this job never built.
+          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            # A dry run publishes nothing, so it must not create or finalize a
+            # release or upload source maps. Without the token the plugin
+            # skips all of that, which is exactly the behaviour we want here.
+            echo "dry run — clearing SENTRY_AUTH_TOKEN so this build cannot mint a release"
+            unset SENTRY_AUTH_TOKEN
+          elif [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::warning::SENTRY_AUTH_TOKEN is not set — this build will not create a Sentry release, so issues referenced by 'Fixes ISSUE-ID' will not auto-resolve."
+          fi
+          npm run build
 
       - name: Sanity-check the export before publishing
         run: |
@@ -143,14 +174,66 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
             out/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
 
-      - name: Verify the live site
+      - name: Verify the deploy landed
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          TARGET_DIR: domains/chetcarter.com/public_html
         run: |
-          for path in / p1.webp _next/static; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "https://chetcarter.com/$path" --max-time 25 || echo 000)
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "dry run — nothing was uploaded, nothing to verify"
+            exit 0
+          fi
+          # Compare what we built against what is actually on the server.
+          # This replaces an HTTP probe that curled the public URL: Hostinger's
+          # CDN answers GitHub runner IPs with 403 whatever the site's health,
+          # so that check could not tell a broken deploy from a bot filter — it
+          # failed the deploy of 2c5d865 while the site served 200 to browsers
+          # the whole time. Checksums over the same SSH connection that did the
+          # upload are immune to anything the CDN decides about CI traffic.
+          # Don't depend on one binary name existing on the host. The earlier
+          # remote check only ever proved test/find/wc are there; a host
+          # without coreutils' sha256sum would fail this step *after* a
+          # successful upload, which is the same false-red this step exists to
+          # remove — just moved from the CDN to the remote toolchain.
+          sum_cmd='if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1"; else shasum -a 256 "$1"; fi'
+          if command -v sha256sum >/dev/null 2>&1; then
+            local_sum=$(sha256sum out/index.html | cut -d' ' -f1)
+          else
+            local_sum=$(shasum -a 256 out/index.html | cut -d' ' -f1)
+          fi
+          # `|| true` so a failed ssh or a missing hashing tool reaches the
+          # guard below with an explanation, instead of errexit killing the
+          # step on the assignment and leaving a bare non-zero ssh exit.
+          remote=$(ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "sh -c '$sum_cmd' _ '$TARGET_DIR/index.html' | cut -d' ' -f1") || true
+          remote_sum=$(echo "$remote" | sed -n 1p | tr -d '[:space:]')
+          echo "  index.html  local=$local_sum"
+          echo "              remote=$remote_sum"
+          [ -n "$remote_sum" ] || {
+            echo "could not hash index.html on the server (ssh failed, or neither sha256sum nor shasum is available there)"
+            exit 1
+          }
+          [ "$local_sum" = "$remote_sum" ] || { echo "index.html on the server does not match this build"; exit 1; }
+
+      - name: Probe the live site (informational)
+        if: ${{ inputs.dry_run != true }}
+        continue-on-error: true
+        run: |
+          # Deliberately not a gate. The CDN blocks CI egress, so a non-200
+          # here says nothing about what browsers get — the checksum step above
+          # is what proves the deploy worked. Logged because when it does
+          # answer, it is a free end-to-end signal.
+          for path in "" p1.webp; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -A 'Mozilla/5.0 (compatible; chetcarter-deploy-check/1.0)' \
+              "https://chetcarter.com/$path" --max-time 25 || echo 000)
             echo "  /$path -> $code"
           done
-          code=$(curl -sS -o /dev/null -w '%{http_code}' https://chetcarter.com/ --max-time 25 || echo 000)
-          [ "$code" = "200" ] || { echo "homepage returned $code after deploy"; exit 1; }
+          echo "note: 403 from a GitHub runner is expected CDN behaviour, not a deploy failure"
 
       - name: Remove the deploy key from the runner
         if: always()
