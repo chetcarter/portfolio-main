@@ -5,10 +5,13 @@
 // pressure, or simply too many live contexts on one page — so probe for support
 // before mounting a <Canvas> instead of letting the renderer blow up.
 
-let supported: boolean | null = null;
-
+// Deliberately not memoized. Context availability is a live property of the
+// device, not a fact about the browser: it swings with GPU pressure and with
+// how many contexts this page is already holding. A cached `true` would let a
+// later caller mount a Canvas into an exhausted device and throw the very
+// error this module exists to prevent, and a cached `false` would keep the
+// globe blank for the rest of the session after a moment's pressure passed.
 export function isWebGLAvailable(): boolean {
-  if (supported !== null) return supported;
   if (typeof window === "undefined" || typeof document === "undefined") {
     return false;
   }
@@ -28,10 +31,8 @@ export function isWebGLAvailable(): boolean {
         ?.loseContext();
     }
 
-    supported = gl !== null;
+    return gl !== null;
   } catch {
-    supported = false;
+    return false;
   }
-
-  return supported;
 }
