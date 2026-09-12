@@ -30,6 +30,25 @@ export default withSentryConfig(nextConfig, {
   // Automatically tree-shake Sentry logger statements to reduce bundle size
   disableLogger: true,
 
+  release: {
+    // Attach the commits in this release to it, so Sentry can match the
+    // `Fixes ISSUE-ID` trailers in commit messages and auto-resolve.
+    //
+    // This needs three things to line up, and all three were missing: a
+    // SENTRY_AUTH_TOKEN at build time (without it the plugin skips release
+    // creation entirely — which is why no release existed for any commit
+    // after 2026-08-27), a non-shallow checkout for `auto` to walk history,
+    // and the GitHub repository linked in Sentry's integration settings.
+    setCommits: {
+      auto: true,
+      // Commit association is a convenience. If Sentry cannot match the repo
+      // or finds nothing new, say so in the log and carry on — a deploy that
+      // is otherwise healthy must not fail over release bookkeeping.
+      ignoreMissing: true,
+      ignoreEmpty: true,
+    },
+  },
+
   // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
   // See the following for more information:
   // https://docs.sentry.io/product/crons/
