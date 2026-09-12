@@ -136,6 +136,9 @@ jobs:
               echo \"target ok: \$(find '$TARGET_DIR' -type f | wc -l | tr -d ' ') files currently deployed\"
             "
 
+      - name: Record when the upload started
+        run: echo "DEPLOY_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Publish to Hostinger
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -218,6 +221,33 @@ jobs:
             exit 1
           }
           [ "$local_sum" = "$remote_sum" ] || { echo "index.html on the server does not match this build"; exit 1; }
+
+      - name: Record the deploy in Sentry
+        if: ${{ inputs.dry_run != true }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: chet-carter
+          SENTRY_PROJECT: javascript-nextjs
+          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          # Deliberately here rather than via the plugin's `release.deploy`
+          # option, which fires during the build — that would mark the release
+          # deployed before rsync had even run, and would still say so if the
+          # upload then failed. This step sits after the checksum verification,
+          # so a deploy is only recorded once the bytes are provably on the
+          # server. Same reasoning as replacing the old HTTP check: never
+          # record a success we have not actually confirmed.
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::warning::SENTRY_AUTH_TOKEN is not set — skipping Sentry deploy tracking."
+            exit 0
+          fi
+          npx --no-install sentry-cli releases deploys "$SENTRY_RELEASE" new \
+            --env production \
+            --name "chetcarter.com" \
+            --url "https://chetcarter.com/" \
+            --started "${DEPLOY_STARTED:-$(date +%s)}" \
+            --finished "$(date +%s)" \
+          || echo "::warning::Could not record the deploy in Sentry. The deploy itself succeeded — this is bookkeeping only."
 
       - name: Probe the live site (informational)
         if: ${{ inputs.dry_run != true }}
