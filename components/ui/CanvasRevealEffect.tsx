@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import React, { useMemo, useRef } from "react";
 import * as THREE from "three";
+import { isWebGLAvailable } from "@/lib/webgl";
+import { WebGLBoundary } from "./WebGLBoundary";
 
 export const CanvasRevealEffect = ({
   animationSpeed = 0.4,
@@ -291,10 +293,17 @@ const ShaderMaterial = ({
 };
 
 const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
+  // Three of these mount per hovered card, each claiming its own context, on
+  // top of the globe's. That stacking is what pushes iOS over its context
+  // limit, so this guard matters more here than the single-canvas case.
+  if (!isWebGLAvailable()) return null;
+
   return (
-    <Canvas className="absolute inset-0  h-full w-full">
-      <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
-    </Canvas>
+    <WebGLBoundary>
+      <Canvas className="absolute inset-0  h-full w-full">
+        <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
+      </Canvas>
+    </WebGLBoundary>
   );
 };
 interface ShaderProps {
