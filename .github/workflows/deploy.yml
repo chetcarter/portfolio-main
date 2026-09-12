@@ -244,6 +244,15 @@ jobs:
           # would point this at a dead project, and because the call below
           # degrades failures to a warning it would go green forever while
           # recording nothing.
+          # @sentry/cli is a direct devDependency, so a missing binary here is
+          # a broken install rather than an upstream dependency shuffle. Say so
+          # distinctly: an ::error:: annotation stands out from the transient
+          # API failures below, without failing a deploy whose files are
+          # already verified on the server.
+          if ! npx --no-install sentry-cli --version >/dev/null 2>&1; then
+            echo "::error::sentry-cli is not available — deploy tracking skipped. @sentry/cli is a declared devDependency, so check that npm ci installed it."
+            exit 0
+          fi
           SENTRY_ORG=$(node --input-type=module -e "process.stdout.write((await import('./sentry.shared.mjs')).SENTRY_ORG)")
           SENTRY_PROJECT=$(node --input-type=module -e "process.stdout.write((await import('./sentry.shared.mjs')).SENTRY_PROJECT)")
           export SENTRY_ORG SENTRY_PROJECT
