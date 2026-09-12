@@ -1,4 +1,5 @@
 import {withSentryConfig} from '@sentry/nextjs';
+import {SENTRY_ORG, SENTRY_PROJECT} from './sentry.shared.mjs';
 
 // `output: 'export'` means there is no server runtime at all — every route is
 // prerendered to static HTML and served by Hostinger. Sentry warns on every
@@ -16,9 +17,9 @@ export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "chet-carter",
+  org: SENTRY_ORG,
 
-  project: "javascript-nextjs",
+  project: SENTRY_PROJECT,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
