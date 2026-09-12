@@ -1,4 +1,12 @@
 import {withSentryConfig} from '@sentry/nextjs';
+
+// `output: 'export'` means there is no server runtime at all — every route is
+// prerendered to static HTML and served by Hostinger. Sentry warns on every
+// build that an instrumentation file is missing, but that file only ever runs
+// server-side, so adding one here would be dead code. Silence the warning
+// rather than satisfy it with a file that can never execute.
+process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING ??= '1';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
@@ -27,8 +35,13 @@ export default withSentryConfig(nextConfig, {
   // side errors will fail.
   // tunnelRoute: "/monitoring",
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  // Automatically tree-shake Sentry logger statements to reduce bundle size.
+  // (Was `disableLogger`, deprecated in favour of this nested form.)
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
 
   release: {
     // Attach the commits in this release to it, so Sentry can match the
@@ -49,9 +62,9 @@ export default withSentryConfig(nextConfig, {
     },
   },
 
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
+  // `automaticVercelMonitors` was set here and is now deprecated. Rather than
+  // move it to `webpack.automaticVercelMonitors`, it is dropped: it creates
+  // Sentry cron monitors from Vercel Cron Jobs declared in vercel.json, and
+  // this site deploys to Hostinger with no vercel.json and no cron jobs. It
+  // was a no-op before the rename and would be a no-op after it.
 });
