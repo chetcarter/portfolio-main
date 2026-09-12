@@ -71,6 +71,25 @@ perfectly healthy deploy while browsers were served 200 throughout.
   `sentry.shared.mjs` is the single source for the org and project slugs; do
   not hardcode them anywhere else.
 
+## Working in this repo
+
+- `gh api --cache 0` — gh caches reads. `gh run list --commit <sha>` returned
+  empty while runs existed, and `ccd_pr get_status` reports 0 checks for a few
+  seconds after a PR opens. Neither absence means "none"; re-read before
+  concluding.
+- `gh pr update-branch <n>` before `gh pr merge` — strict status checks reject
+  a branch that is behind `main`.
+- Copilot auto-reviews every PR and the ruleset requires threads resolved, so a
+  merge stays blocked until its comments are answered and resolved.
+- Test a workflow `run:` block by extracting and executing it, not by reading
+  it: dump `yaml.load(...).jobs.deploy.steps.find(...).run` to a file and run
+  that file. This caught a heredoc that could not terminate and brace mangling
+  that produced an invalid import — which `deploy.yml`'s warn-and-continue
+  error handling would otherwise have hidden indefinitely.
+- Proving a build option works needs a control run with the option *absent*.
+  Comparing old-option against new-option output only shows they match, which
+  is also what two no-ops look like.
+
 ## Branch protection on `main`
 
 Squash merges only, linear history required, the `ci` check must pass, and
