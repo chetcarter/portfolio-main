@@ -78,8 +78,22 @@ jobs:
           # inert. Only the deploy builds a release — CI builds the same code
           # but never ships it, so it must not mint releases.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # Name the release after the commit we actually checked out and are
+          # about to publish. The plugin's own detection reads GITHUB_SHA
+          # first, and on a `workflow_run` trigger that is the default
+          # branch's head when the event fired — not workflow_run.head_sha.
+          # With two merges landing close together those differ, and the
+          # release would be filed against code this job never built.
+          SENTRY_RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
+            # A dry run publishes nothing, so it must not create or finalize a
+            # release or upload source maps. Without the token the plugin
+            # skips all of that, which is exactly the behaviour we want here.
+            echo "dry run — clearing SENTRY_AUTH_TOKEN so this build cannot mint a release"
+            unset SENTRY_AUTH_TOKEN
+          elif [ -z "$SENTRY_AUTH_TOKEN" ]; then
             echo "::warning::SENTRY_AUTH_TOKEN is not set — this build will not create a Sentry release, so issues referenced by 'Fixes ISSUE-ID' will not auto-resolve."
           fi
           npm run build
