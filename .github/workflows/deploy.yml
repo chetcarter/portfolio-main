@@ -179,17 +179,30 @@ jobs:
           # failed the deploy of 2c5d865 while the site served 200 to browsers
           # the whole time. Checksums over the same SSH connection that did the
           # upload are immune to anything the CDN decides about CI traffic.
-          local_sum=$(sha256sum out/index.html | cut -d' ' -f1)
-          local_count=$(find out -type f | wc -l | tr -d ' ')
+          # Don't depend on one binary name existing on the host. The earlier
+          # remote check only ever proved test/find/wc are there; a host
+          # without coreutils' sha256sum would fail this step *after* a
+          # successful upload, which is the same false-red this step exists to
+          # remove — just moved from the CDN to the remote toolchain.
+          sum_cmd='if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1"; else shasum -a 256 "$1"; fi'
+          if command -v sha256sum >/dev/null 2>&1; then
+            local_sum=$(sha256sum out/index.html | cut -d' ' -f1)
+          else
+            local_sum=$(shasum -a 256 out/index.html | cut -d' ' -f1)
+          fi
+          # `|| true` so a failed ssh or a missing hashing tool reaches the
+          # guard below with an explanation, instead of errexit killing the
+          # step on the assignment and leaving a bare non-zero ssh exit.
           remote=$(ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
-            "sha256sum '$TARGET_DIR/index.html' | cut -d' ' -f1; find '$TARGET_DIR' -type f | wc -l")
+            "sh -c '$sum_cmd' _ '$TARGET_DIR/index.html' | cut -d' ' -f1") || true
           remote_sum=$(echo "$remote" | sed -n 1p | tr -d '[:space:]')
-          remote_count=$(echo "$remote" | sed -n 2p | tr -d '[:space:]')
           echo "  index.html  local=$local_sum"
           echo "              remote=$remote_sum"
-          echo "  file count  local=$local_count remote=$remote_count"
-          [ -n "$remote_sum" ] || { echo "could not read index.html on the server"; exit 1; }
+          [ -n "$remote_sum" ] || {
+            echo "could not hash index.html on the server (ssh failed, or neither sha256sum nor shasum is available there)"
+            exit 1
+          }
           [ "$local_sum" = "$remote_sum" ] || { echo "index.html on the server does not match this build"; exit 1; }
 
       - name: Probe the live site (informational)
