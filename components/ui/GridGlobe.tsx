@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import { isWebGLAvailable } from "@/lib/webgl";
+import { WebGLBoundary } from "./WebGLBoundary";
 
 const World = dynamic(() => import("./Globe").then((m) => m.World), {
   ssr: false,
@@ -68,6 +70,12 @@ function useInView<T extends HTMLElement>(rootMargin = "300px") {
 
 const GridGlobe = () => {
   const [globeRef, globeInView] = useInView<HTMLDivElement>();
+
+  // Mobile Safari hands back a null WebGL context often enough that this was
+  // the site's top Sentry issue. Ask first; a missing globe beats a throw.
+  // Only ever evaluated once globeInView flips, which is client-side, so this
+  // can't desync hydration.
+  const showGlobe = globeInView && isWebGLAvailable();
   const globeConfig = {
     pointSize: 4,
     globeColor: "#062056",
@@ -486,7 +494,11 @@ const GridGlobe = () => {
         <div className="absolute w-full bottom-0 inset-x-0 h-40 bg-gradient-to-b pointer-events-none select-none from-transparent dark:to-black to-white z-40" />
         {/* remove -bottom-20 */}
         <div ref={globeRef} className="absolute w-full h-72 md:h-full z-10">
-          {globeInView && <World data={sampleArcs} globeConfig={globeConfig} />}
+          {showGlobe && (
+            <WebGLBoundary>
+              <World data={sampleArcs} globeConfig={globeConfig} />
+            </WebGLBoundary>
+          )}
         </div>
       </div>
     </div>
