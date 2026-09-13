@@ -50,12 +50,14 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
           missing=""
           [ -n "$SSH_HOST" ]        || missing="$missing SSH_HOST"
           [ -n "$SSH_PORT" ]        || missing="$missing SSH_PORT"
           [ -n "$SSH_USER" ]        || missing="$missing SSH_USER"
           [ -n "$SSH_PRIVATE_KEY" ] || missing="$missing SSH_PRIVATE_KEY"
+          [ -n "$SSH_KNOWN_HOSTS" ] || missing="$missing SSH_KNOWN_HOSTS"
           if [ -n "$missing" ]; then
             echo "Missing repository secret(s):$missing"
             echo "Add them under Settings -> Secrets and variables -> Actions."
@@ -109,14 +111,44 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          # Pin the host key up front so the rsync below can run with strict
-          # checking on, rather than blindly trusting whatever answers.
-          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          test -s ~/.ssh/known_hosts || { echo "ssh-keyscan returned nothing for $SSH_HOST:$SSH_PORT"; exit 1; }
+
+          # The host key is PINNED, not discovered.
+          #
+          # This used to be `ssh-keyscan` at deploy time, which trusted
+          # whatever answered on the day. That cost us both ways: a transient
+          # failure to reach the host killed the whole deploy (run
+          # 34724880848, 2026-09-12), and an impostor answering at the wrong
+          # moment would have been accepted in silence. A pinned key removes
+          # the network dependency and the trust-on-first-use window at once.
+          #
+          # Rotating the server's host key is now a deliberate act: the deploy
+          # fails loudly and SSH_KNOWN_HOSTS must be re-verified and re-set.
+          # That is the intended behaviour — a host key that changes without
+          # anyone noticing is the thing pinning exists to prevent.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          # ssh looks a host up as `[host]:port` whenever the port is not 22.
+          # A pinned bare `host` line parses fine and matches nothing, failing
+          # later at connect time with a much less obvious error, so check the
+          # lookup here where the message can say what to do about it.
+          if [ "$SSH_PORT" = "22" ]; then spec="$SSH_HOST"; else spec="[$SSH_HOST]:$SSH_PORT"; fi
+          if ! ssh-keygen -F "$spec" -f ~/.ssh/known_hosts >/dev/null 2>&1; then
+            echo "SSH_KNOWN_HOSTS contains no entry matching $spec."
+            echo
+            echo "Regenerate it locally with:"
+            echo "    ssh-keyscan -p <port> <host>"
+            echo "verify the fingerprint against hPanel, then:"
+            echo "    gh secret set SSH_KNOWN_HOSTS < known_hosts.txt"
+            exit 1
+          fi
+          echo "pinned host key in use:"
+          ssh-keygen -l -F "$spec" -f ~/.ssh/known_hosts
 
       - name: Confirm the remote target is the live site
         env:

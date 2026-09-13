@@ -41,10 +41,13 @@ lib/             helpers
 Merge to `main` → CI (lint, typecheck, build) → Deploy workflow → `rsync` over
 SSH to Hostinger. There is no FTP path and one should not be added: key-based
 auth, `--delete-after` pruning and a web-root guard all already exist, and a
-second write path to one document root invites drift. (The host key is
-trust-on-first-use per job — `ssh-keyscan` seeds `known_hosts`, then
-`StrictHostKeyChecking=yes` holds for the rest of that run. It is not pinned
-against an independently trusted fingerprint.)
+second write path to one document root invites drift. (The host key is **pinned**, in the
+`SSH_KNOWN_HOSTS` secret. It used to be trust-on-first-use per job via
+`ssh-keyscan`, which failed the deploy outright whenever the scan came back
+empty — it did on 2026-09-12 — and would have accepted an impostor that
+answered at the wrong moment. Rotating the server's host key now fails the
+deploy loudly and requires re-verifying the fingerprint and re-setting the
+secret; that is intended.)
 
 Manual run: Actions → Deploy. It takes a `dry_run` input that previews changes
 without uploading.
