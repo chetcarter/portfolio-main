@@ -42,9 +42,15 @@ convention does not apply.
 
 ## Use the glossary's vocabulary
 
-When your output names a domain concept (in an issue title, a refactor
-proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`.
-Don't drift to synonyms the glossary explicitly avoids.
+**Only once `CONTEXT.md` exists.** Until then this section is dormant: use the
+vocabulary `CLAUDE.md` already establishes (`static export`, `web root`,
+`deploy workflow`, `lint baseline`) and don't treat an undocumented term as a
+domain gap — with no glossary, every term is undocumented, and a rule that
+fires on everything is a rule that says nothing.
+
+Once it exists: when your output names a domain concept (in an issue title, a
+refactor proposal, a hypothesis, a test name), use the term as defined in
+`CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
 
 If the concept you need isn't in the glossary yet, that's a signal: either
 you're inventing language the project doesn't use (reconsider) or there's a
