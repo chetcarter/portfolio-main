@@ -118,3 +118,20 @@ perfectly healthy deploy while browsers were served 200 throughout.
 Squash merges only, linear history required, the `ci` check must pass, and
 review threads must be resolved before merge. A PR that merges at a stale head
 can silently drop commits pushed after review — verify what actually landed.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `chetcarter/portfolio-main`, via the `gh` CLI.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and one `docs/adr/` at the repo root. See
+`docs/agents/domain.md`.
